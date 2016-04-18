@@ -198,6 +198,47 @@ sub Prepare {
         IsOut         => 1,
     );
 
+    # If we have text/html part with inline images, add them in a multipart/related
+    foreach my $part ( grep !$_->is_multipart, $MIMEObj->parts_DFS ) {
+        if ( $part->mime_type && $part->mime_type eq 'text/html' ) {
+            my $body = $part->bodyhandle->as_string;
+            # Replace IMG CIDs by their content
+            use HTML::TreeBuilder;
+            my $html = HTML::TreeBuilder->new;
+            $html->case_sensitive(0);
+            $html->parse($body);
+            my @links = $html->look_down( '_tag', 'img', 'src', qr/^cid:/);
+            my @attachments;
+            foreach my $link ( @links ) {
+                my $src = $link->attr( 'src' );
+                if ( $src && $src =~ m/^cid:"?(.*)"?$/ ) {
+                    my $cid = $1;
+                    my $Attachments = $self->TicketObj->Attachments;
+                    while ( my $Attachment = $Attachments->Next ) {
+                        next unless ( $Attachment->ContentType =~ m!image/! );
+                        my $a_cid = $Attachment->GetHeader('Content-ID');
+                        next unless ( $a_cid );
+                        $a_cid =~ s/^<(.*)>$/$1/;
+                        next unless ( $cid eq $a_cid );
+                        # Don't attach a cid that appears multiple times, multiple times
+                        next if ( grep { $_ == $Attachment->id } @{$self->{'SkipAttachment'}} );
+                        push @attachments, $Attachment;
+                        # Saves CIDs found to ignore them further in RT::Action::SendEmail if RT-Attach-Message eq yes
+                        push @{$self->{'SkipAttachment'}}, $Attachment->id;
+                        last;
+                    }
+                }
+            }
+            if ( scalar @attachments ) {
+                $part->make_multipart('related', Force => 1);
+                foreach my $attach( @attachments ) {
+                    $self->AddAttachment($attach, $part);
+                }
+            }
+        }
+    }
+
+
     # Build up a MIME::Entity that looks like the original message.
     $self->AddAttachments if ( $MIMEObj->head->get('RT-Attach-Message')
                                && ( $MIMEObj->head->get('RT-Attach-Message') !~ /^(n|no|0|off|false)$/i ) );
@@ -384,9 +425,22 @@ sub AddAttachments {
 
     my $attachments = AttachableFromTransaction($self->TransactionObj);
 
+    # Skip also the html content
+    my $transaction_html_content_obj = $self->TransactionObj->ContentObj( Type => 'text/html' );
+    if ( $transaction_html_content_obj ) {
+        $attachments->Limit(
+             ENTRYAGGREGATOR => 'AND',
+             FIELD           => 'id',
+             OPERATOR        => '!=',
+             VALUE           => $transaction_html_content_obj->Id,
+        );
+    }
+
     # attach any of this transaction's attachments
     my $seen_attachment = 0;
     while ( my $attach = $attachments->Next ) {
+        # Skip attachments already included in body (inlined images)
+        next if ( grep { $attach->id == $_ } @{$self->{'SkipAttachment'}} );
         if ( !$seen_attachment ) {
             $MIMEObj->make_multipart( 'mixed', Force => 1 );
             $seen_attachment = 1;
