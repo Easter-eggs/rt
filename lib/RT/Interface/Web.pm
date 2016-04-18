@@ -2330,12 +2330,62 @@ sub ProcessUpdateMessage {
         $args{ARGSRef}->{'UpdateSubject'} = undef;
     }
 
+    # Copy/paste of images in richtext editor leads to inline src="data:image/". Extract
+    # them as standard attachments as most webmail won't display cid:data
+    my @inline_images;
+    if ( $args{ARGSRef}->{'UpdateContentType'} eq 'text/html' && $args{ARGSRef}->{'UpdateContent'} =~ m'src="data:image/' ) {
+        my $content = \$args{ARGSRef}->{'UpdateContent'};
+
+        require HTML::RewriteAttributes::Resources;
+        $$content = HTML::RewriteAttributes::Resources->rewrite($$content, sub {
+            my $cid  = shift;
+            my %meta = @_;
+            return $cid unless    lc $meta{tag}  eq 'img'
+                              and lc $meta{attr} eq 'src'
+                              and $cid =~ s/^data:image\/(\w+);base64,(.*)$//i;
+
+            my $type = $1;
+            my $data = MIME::Base64::decode_base64($2);
+            my $cid_name = "rt-img-"
+                           .$$
+                           ."-"
+                           .CORE::time()
+                           ."-"
+                           .int(rand(2000))
+                           ."-"
+                           .$args{'TicketObj'}->id
+                           .'.'
+                           .scalar(@inline_images)
+                           ."@"
+                           .RT->Config->Get('Organization');
+
+            my $ImageEntity = MIME::Entity->build(
+                Type => 'image/'.$type,
+                Data => $data,
+                Disposition => 'inline',
+                Filename => "$cid_name.$type",
+                Id => $cid_name,
+                Top => 0,
+            );
+            push @inline_images, $ImageEntity;
+
+            return "cid:$cid_name";
+        }); 
+    }
+
     my $Message = MakeMIMEEntity(
         Subject => $args{ARGSRef}->{'UpdateSubject'},
         Body    => $args{ARGSRef}->{'UpdateContent'},
         Type    => $args{ARGSRef}->{'UpdateContentType'},
         Interface => RT::Interface::Web::MobileClient() ? 'Mobile' : 'Web',
     );
+
+    if ( scalar @inline_images ) {
+        $Message->make_multipart ( 'related' ); 
+        foreach my $inline_image( @inline_images ) {
+            $Message->add_part( $inline_image );
+        }
+    }
 
     $Message->head->replace( 'Message-ID' => Encode::encode( "UTF-8",
         RT::Interface::Email::GenMessageId( Ticket => $args{'TicketObj'} )
