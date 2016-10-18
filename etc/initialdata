@@ -133,6 +133,11 @@
       Description => 'Update User TimeWorked',       # loc
       ExecModule  => 'UpdateUserTimeWorked',
     },
+    { Name        => 'Set custom field to now', # loc
+      Description => 'Set the value of a custom field, provided as the action argument, to the current datetime.', # loc
+      ExecModule  => 'SetCFtoNow',
+      Argument    => 'MyCustomField',
+    },
 );
 
 @ScripConditions = (
