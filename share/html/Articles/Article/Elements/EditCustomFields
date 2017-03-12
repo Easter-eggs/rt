@@ -55,6 +55,7 @@
         Rows => 15,
         Cols => 70
         &></td>
+% $m->callback( CallbackName => 'AfterCustomFieldValue', CustomField => $CustomField, Object => $ArticleObj);
 </tr>
 % }
 <%INIT>
