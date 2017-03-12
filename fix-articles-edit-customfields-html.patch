@@ -1,0 +1,28 @@
+From 1aeaeda25ef6bbafa79a9ff4f247994c9b0ac00d Mon Sep 17 00:00:00 2001
+From: gibus <gibus@easter-eggs.com>
+Date: Sun, 12 Mar 2017 12:59:51 +0100
+Subject: [PATCH] Fix misplaced closing tag
+
+Obviously, table should be closed after itering on rows, not after each
+row.
+---
+ share/html/Articles/Article/Elements/EditCustomFields | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/share/html/Articles/Article/Elements/EditCustomFields b/share/html/Articles/Article/Elements/EditCustomFields
+index c5e4eb8..76fa276 100644
+--- a/share/html/Articles/Article/Elements/EditCustomFields
++++ b/share/html/Articles/Article/Elements/EditCustomFields
+@@ -60,8 +60,8 @@
+         Cols => 70
+         &></td>
+ </tr>
+-</table>
+ % }
++</table>
+ <%INIT>
+ my $CustomFields;
+ 
+-- 
+2.7.4
+
