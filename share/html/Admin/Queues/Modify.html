@@ -115,7 +115,9 @@
 </td><td>
 <& /Elements/EditCustomField, CustomField => $CF,
                               Object => $QueueObj, &>
-</td></tr>
+</td>
+% $m->callback( CallbackName => 'AfterCustomFieldValue', CustomField => $CF, Object => $QueueObj);
+</tr>
 % }
 
 % if ( RT->Config->Get('Crypt')->{'Enable'} ) {
