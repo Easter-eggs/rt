@@ -76,7 +76,9 @@
 </td><td>
 <& /Elements/EditCustomField, CustomField => $CF, 
                               Object => $Group, &>
-</td></tr>
+</td>
+% $m->callback( CallbackName => 'AfterCustomFieldValue', CustomField => $CF, Object => $Group);
+</tr>
 % }
 <tr>
 <td colspan="2">
