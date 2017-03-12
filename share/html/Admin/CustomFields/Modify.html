@@ -245,6 +245,9 @@ if ( $ARGS{'Update'} && $id ne 'new' ) {
         push @results, $msg;
     }
 
+    # Add oportunity for extensions to do something
+    $m->callback(CallbackName => 'Massage', CustomField => $CustomFieldObj, Results => \@results, ARGSRef => \%ARGS);
+
     my $paramtag = "CustomField-". $CustomFieldObj->Id ."-Value";
     # Delete any fields that want to be deleted
     foreach my $key ( keys %ARGS ) {
