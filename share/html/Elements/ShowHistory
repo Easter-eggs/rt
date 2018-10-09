@@ -52,6 +52,7 @@
 <& /Elements/ShowHistoryPage, %ARGS &>
 
 </div>
+% $m->callback( %ARGS, Object => $Object, CallbackName => 'AfterTransactions' );
 % if ($ShowDisplayModes or $ShowTitle) {
 <& /Widgets/TitleBoxEnd &>
 % }

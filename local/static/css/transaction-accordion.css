@@ -1,0 +1,7 @@
+.history .transaction .ui-accordion-header span.type {
+    display: none;
+}
+
+.history .transaction.message div.content {
+    margin-left: 0;
+}

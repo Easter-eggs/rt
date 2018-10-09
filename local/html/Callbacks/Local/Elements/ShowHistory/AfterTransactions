@@ -1,0 +1,13 @@
+<script>
+jQuery(".history-container").each(function(){
+    jQuery(this).accordion({
+        active: (jQuery(this).children(".message").length == 1 ? 0 : false),
+        collapsible: true,
+        heightStyle: "content",
+        header: ".message .metadata"
+    });
+    jQuery(".transaction div.metadata a").click(function(ev){
+        ev.stopPropagation();
+    });
+});
+</script>
